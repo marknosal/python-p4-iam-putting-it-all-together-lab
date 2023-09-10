@@ -9,14 +9,14 @@ from models import User, Recipe
 
 class Signup(Resource):
     def post(self):
-        json = request.get_json()
+        request_json = request.get_json()
         
         new_user = User(
-            username = json['username'],
-            image_url = ['image_url'],
-            bio = json['bio']
+            username = request_json.get('username'),
+            image_url = request_json.get('image_url'),
+            bio = request_json.get('bio')
         )
-        new_user.password_hash = json.get('password')
+        new_user.password_hash = request_json.get('password')
 
         try:
             db.session.add(new_user)
@@ -29,16 +29,43 @@ class Signup(Resource):
             return {'error': '422 Cannot process'}, 422
 
 class CheckSession(Resource):
-    pass
+    
+    def get(self):
+
+        if session.get('user_id'):
+
+            user = User.query.filter(User.id == session['user_id']).first()
+
+            return user.to_dict(), 200
+
+        return {'error': '401 Unauthorized'}, 401
 
 class Login(Resource):
-    pass
+    def post(self):
+        request_json = request.get_json()
+        user = User.query.filter_by(username=request_json.get('username')).first()
+        if user:
+            if user.authenticate(request_json['password']):
+                session['user_id'] = user.id
+                return user.to_dict(), 200
+        return {'error': 'Unauthorized'}, 401
 
 class Logout(Resource):
-    pass
+    def delete(self):
+        if session.get('user_id'):
+            session['user_id'] = None
+            return {}, 204
+        return {'error': 'Unauthorized'}, 401
 
 class RecipeIndex(Resource):
-    pass
+    def get(self):
+        if session.get('user_id'):
+            user = User.query.filter_by(id=session['user_id']).first()
+            return [recipe.to_dict() for recipe in user.recipes], 200
+        return {'error': '401 Unauthorized'}, 401
+    
+
+
 
 api.add_resource(Signup, '/signup', endpoint='signup')
 api.add_resource(CheckSession, '/check_session', endpoint='check_session')
