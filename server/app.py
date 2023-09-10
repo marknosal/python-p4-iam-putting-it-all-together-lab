@@ -8,7 +8,25 @@ from config import app, db, api
 from models import User, Recipe
 
 class Signup(Resource):
-    pass
+    def post(self):
+        json = request.get_json()
+        
+        new_user = User(
+            username = json['username'],
+            image_url = ['image_url'],
+            bio = json['bio']
+        )
+        new_user.password_hash = json.get('password')
+
+        try:
+            db.session.add(new_user)
+            db.session.commit()
+            session['user_id'] = new_user.id
+
+            return new_user.to_dict(), 201
+        
+        except IntegrityError:
+            return {'error': '422 Cannot process'}, 422
 
 class CheckSession(Resource):
     pass
