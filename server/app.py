@@ -61,8 +61,32 @@ class RecipeIndex(Resource):
     def get(self):
         if session.get('user_id'):
             user = User.query.filter_by(id=session['user_id']).first()
+
             return [recipe.to_dict() for recipe in user.recipes], 200
+        
         return {'error': '401 Unauthorized'}, 401
+
+    def post(self):
+        if session.get('user_id'):
+            request_json = request.get_json()
+            new_recipe = Recipe(
+                title = request_json.get('title'),
+                instructions = request_json.get('instructions'),
+                minutes_to_complete = request_json.get('minutes_to_complete'),
+                user_id = session.get('user_id')
+            )
+
+            try:
+                db.session.add(new_recipe)
+                db.session.commit()
+                
+                return new_recipe.to_dict(), 201
+            
+            except IntegrityError:
+
+                return {'error': '422 Unprocessable'}, 422
+            
+        return {'error': '401 Unauthorized'}, 401 
     
 
 
